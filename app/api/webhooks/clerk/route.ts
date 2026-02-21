@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { WebhookEvent } from "@clerk/nextjs/server";
 import prisma from "@/prisma/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { ratelimit } from "@/app/utils/ratelimit";
 
 async function handleUserCreated(eventData: any) {
   const { id, first_name, last_name, email_addresses, unsafe_metadata } =
@@ -82,6 +83,16 @@ async function handleUserDeleted(eventData: any) {
 
 export async function POST(request: NextRequest) {
   const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
+  const ip = request.headers.get("x-forwarded-for") || "[IP_ADDRESS]";
+  const { success } = await ratelimit.limit(ip);
+  if (!success) {
+    return NextResponse.json(
+      {
+        message: "Too many requests",
+      },
+      { status: 429 },
+    );
+  }
   if (!WEBHOOK_SECRET) {
     return NextResponse.json(
       {
