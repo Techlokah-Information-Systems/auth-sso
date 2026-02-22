@@ -60,16 +60,26 @@ async function handleUserDeleted(eventData: Record<string, any>) {
 
 export async function POST(request: NextRequest) {
   const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
-  const ip = request.headers.get("x-forwarded-for") || "[IP_ADDRESS]";
-  const { success } = await ratelimit.limit(ip);
-  if (!success) {
-    return NextResponse.json(
-      {
-        message: "Too many requests",
-      },
-      { status: 429 },
-    );
+
+  // Rate limiting (Graceful fallback if Redis is missing)
+  if (
+    process.env.UPSTASH_REDIS_REST_URL &&
+    process.env.UPSTASH_REDIS_REST_TOKEN
+  ) {
+    try {
+      const ip = request.headers.get("x-forwarded-for") || "[IP_ADDRESS]";
+      const { success } = await ratelimit.limit(ip);
+      if (!success) {
+        return NextResponse.json(
+          { message: "Too many requests" },
+          { status: 429 },
+        );
+      }
+    } catch (error) {
+      console.warn("Rate limiting failed, proceeding anyway:", error);
+    }
   }
+
   if (!WEBHOOK_SECRET) {
     return NextResponse.json(
       {
