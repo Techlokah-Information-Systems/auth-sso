@@ -2,45 +2,27 @@
 
 import { useClerk } from "@clerk/nextjs";
 import { useEffect, Suspense } from "react";
-import { Protected } from "@/app/components/protected";
+import { useSearchParams } from "next/navigation";
+import { Loader } from "@/app/components/loader";
 
-function SignOutAction({
-  redirectUrl,
-}: Readonly<{ redirectUrl: string | null }>) {
+function SignOutAction() {
   const { signOut } = useClerk();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get("redirect_url") || "/";
 
   useEffect(() => {
-    if (redirectUrl) {
-      // Utilize Clerk's built-in options for signout routing
-      signOut({ redirectUrl });
-    }
+    signOut({ redirectUrl });
   }, [signOut, redirectUrl]);
 
-  return (
-    <div className="flex h-screen w-screen justify-center items-center">
-      Signing out...
-    </div>
-  );
-}
-
-function SignOutContent() {
-  return (
-    <Protected>
-      {({ redirectUrl }) => <SignOutAction redirectUrl={redirectUrl} />}
-    </Protected>
-  );
+  return <Loader />;
 }
 
 export default function SignOutPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex h-screen w-screen justify-center items-center">
-          Loading...
-        </div>
-      }
-    >
-      <SignOutContent />
-    </Suspense>
+    <div className="flex h-screen w-screen justify-center items-center">
+      <Suspense fallback={<Loader />}>
+        <SignOutAction />
+      </Suspense>
+    </div>
   );
 }
