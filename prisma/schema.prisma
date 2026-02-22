@@ -15,37 +15,4 @@ model User {
   last_name String?
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-
-  user_products UserProduct[]
-}
-
-model Product {
-  id String @id @default(cuid())
-  name String
-  description String?
-  secret String
-  product_id String @unique
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  domain String @unique
-  environment Environment @default(DEVELOPMENT)
-  isActive Boolean @default(true)
-
-  user_products UserProduct[]
-}
-
-model UserProduct {
-  id String @id @default(cuid())
-  user_id String
-  product_id String
-
-  user User @relation(fields: [user_id], references: [id])
-  product Product @relation(fields: [product_id], references: [id])
-}
-
-enum Environment {
-  DEVELOPMENT
-  PRODUCTION
-  PREPROD
-  TEST
 }

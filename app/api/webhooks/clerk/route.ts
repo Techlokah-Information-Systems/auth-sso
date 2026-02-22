@@ -5,40 +5,17 @@ import prisma from "@/prisma/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { ratelimit } from "@/app/utils/ratelimit";
 
-async function handleUserCreated(eventData: any) {
-  const { id, first_name, last_name, email_addresses, unsafe_metadata } =
-    eventData;
+async function handleUserCreated(eventData: Record<string, any>) {
+  const { id, first_name, last_name, email_addresses } = eventData;
   const email = email_addresses[0].email_address;
 
   try {
-    if (!unsafe_metadata?.productId || !unsafe_metadata?.redirectUrl) {
-      throw new Error("Missing required metadata in webhook");
-    }
-
-    const origin = new URL(unsafe_metadata.redirectUrl).origin;
-
-    const product = await prisma.product.findFirst({
-      where: {
-        product_id: unsafe_metadata.productId,
-        domain: origin,
-      },
-    });
-
-    if (!product) {
-      throw new Error("Product not found");
-    }
-
     const user = await prisma.user.create({
       data: {
         first_name,
         last_name,
         email,
         clerk_id: id,
-        user_products: {
-          create: {
-            product_id: product.id,
-          },
-        },
       },
     });
 
@@ -48,7 +25,7 @@ async function handleUserCreated(eventData: any) {
   }
 }
 
-async function handleUserUpdated(eventData: any) {
+async function handleUserUpdated(eventData: Record<string, any>) {
   const { id } = eventData;
   try {
     const user = await prisma.user.update({
@@ -67,7 +44,7 @@ async function handleUserUpdated(eventData: any) {
   }
 }
 
-async function handleUserDeleted(eventData: any) {
+async function handleUserDeleted(eventData: Record<string, any>) {
   const { id } = eventData;
   try {
     const user = await prisma.user.delete({
