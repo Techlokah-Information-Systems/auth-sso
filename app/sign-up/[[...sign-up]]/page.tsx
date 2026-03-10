@@ -87,15 +87,20 @@ function SignUpForm() {
 
   if (!isLoaded) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-gray-50/50 dark:bg-black">
+      <div className="relative flex min-h-screen w-full items-center justify-center p-4 overflow-hidden bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-black">
         <Loader />
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen w-full items-center justify-center bg-gray-50/50 p-4 dark:bg-zinc-950">
-      <Card className="w-full max-w-[400px] shadow-xl border-0 md:border md:dark:border-zinc-800 bg-card rounded-2xl md:rounded-xl">
+    <div className="relative flex min-h-screen w-full items-center justify-center p-4 overflow-hidden">
+      {/* Background Gradients */}
+      <div className="absolute inset-0 bg-linear-to-br from-indigo-50 via-white to-cyan-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-black" />
+      <div className="absolute top-0 right-0 -mr-32 -mt-32 w-160 h-160 rounded-full bg-blue-300/30 dark:bg-indigo-600/20 blur-[130px] mix-blend-multiply dark:mix-blend-screen animate-pulse duration-1000" />
+      <div className="absolute bottom-0 left-0 -ml-32 -mb-32 w-140 h-140 rounded-full bg-purple-300/30 dark:bg-purple-900/30 blur-[130px] mix-blend-multiply dark:mix-blend-screen" />
+
+      <Card className="relative z-10 w-full max-w-[420px] shadow-2xl border border-white/60 dark:border-white/10 bg-white/70 dark:bg-zinc-950/60 backdrop-blur-2xl rounded-3xl overflow-hidden">
         <CardHeader className="space-y-2 text-center pb-6">
           <CardTitle className="text-2xl font-semibold tracking-tight">
             Create an account
@@ -216,7 +221,7 @@ export default function SignUpPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex h-screen w-screen items-center justify-center bg-gray-50/50 dark:bg-black">
+        <div className="relative flex min-h-screen w-full items-center justify-center p-4 overflow-hidden bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-black">
           <Loader />
         </div>
       }
