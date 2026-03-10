@@ -9,6 +9,9 @@ async function handleUserCreated(eventData: Record<string, any>) {
   const { id, first_name, last_name, email_addresses } = eventData;
   const email = email_addresses[0].email_address;
 
+  console.log("====== Event Data: ======");
+  console.log(eventData);
+
   try {
     const user = await prisma.user.create({
       data: {
