@@ -24,6 +24,8 @@ function SignInForm() {
   const searchParams = useSearchParams();
 
   const clientId = searchParams.get("client_id");
+  const redirectUrl =
+    searchParams.get("redirect_url") || searchParams.get("redirect_uri");
 
   const [emailAddress, setEmailAddress] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -44,8 +46,12 @@ function SignInForm() {
 
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
-        // Optional: Provide custom redirect logic here if needed
-        router.push("/");
+        // Let Clerk handle the SSO Identity Provider redirect, fallback to roots if no redirect url
+        if (redirectUrl) {
+          router.push(redirectUrl);
+        } else {
+          router.push("/");
+        }
       } else {
         console.error(JSON.stringify(result, null, 2));
         setError("Unable to complete sign in. Please try again.");
@@ -137,7 +143,7 @@ function SignInForm() {
           <div>
             Don&apos;t have an account?{" "}
             <Link
-              href={clientId ? `/sign-up?client_id=${clientId}` : "/sign-up"}
+              href={`/sign-up?${new URLSearchParams(Object.fromEntries(searchParams.entries())).toString()}`}
               className="text-primary hover:underline font-medium"
             >
               Sign up

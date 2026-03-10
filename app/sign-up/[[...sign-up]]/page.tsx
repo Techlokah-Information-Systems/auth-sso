@@ -25,6 +25,8 @@ function SignUpForm() {
 
   // Getting the client_id if passed in the URL, as requested for the OAuth application feature
   const clientId = searchParams.get("client_id");
+  const redirectUrl =
+    searchParams.get("redirect_url") || searchParams.get("redirect_uri");
 
   const [emailAddress, setEmailAddress] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -72,7 +74,11 @@ function SignUpForm() {
         await setActive({ session: completeSignUp.createdSessionId });
         // Optional: If you need to redirect back to your client app in the OAuth flow,
         // you might handle that here or use Clerk's default redirect behavior.
-        router.push("/");
+        if (redirectUrl) {
+          router.push(redirectUrl);
+        } else {
+          router.push("/");
+        }
       } else {
         console.error(JSON.stringify(completeSignUp, null, 2));
         setError("Unable to complete sign up. Please try again.");
@@ -204,7 +210,7 @@ function SignUpForm() {
               Already have an account?{" "}
               <Link
                 // Preserve query parameters when navigating back to sign-in
-                href={clientId ? `/sign-in?client_id=${clientId}` : "/sign-in"}
+                href={`/sign-in?${new URLSearchParams(Object.fromEntries(searchParams.entries())).toString()}`}
                 className="text-primary hover:underline font-medium"
               >
                 Sign in

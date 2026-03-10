@@ -81,15 +81,29 @@ The server will be available at `http://localhost:3000`.
 
 ## How it Works
 
-### 1. Connecting Satellite Apps
+### 1. Connecting Satellite Apps (OAuth Flow)
 
-Satellite applications can route unauthenticated users to this auth server instead of handling their own UI. You can pass a `client_id` query parameter for better UX:
+This Auth Server is built to act as a **Custom UI Identity Provider** using Clerk's OAuth apps.
+
+Satellite applications (like `product-a.techlokah.com`) should **not** link directly to `/sign-in` on this server. Instead, they should initiate the standard OAuth 2.0 flow by pointing unauthenticated users to Clerk's Authorize endpoint:
 
 ```text
-http://localhost:3000/sign-in?client_id=MySatelliteApp
+https://<YOUR_CLERK_DOMAIN>.clerk.accounts.dev/oauth/authorize
+  ?client_id=oauth_app_abc123
+  &response_type=code
+  &redirect_uri=https://product-a.techlokah.com/oauth/callback
+  &scope=email%20profile
 ```
 
-The user will see "Connecting to app: MySatelliteApp" under the standard login form. Once authentication is complete, Clerk manages the session, and your Next.js satellite apps (sharing the same Clerk instance/keys) will immediately detect the user's logged-in state.
+**How the flow works:**
+
+1. The user clicks "Login" on Product A and is sent to Clerk's `oauth/authorize` backend.
+2. Clerk recognizes the `client_id` and sees you have configured this Auth Server as your Custom Sign-In URL.
+3. Clerk automatically redirects the user to our Custom UI:
+   `https://auth.techlokah.com/sign-in?redirect_url=...`
+4. The user authenticates using our custom glass UI.
+5. Our code catches the `redirect_url` provided by Clerk and sends the user back.
+6. Clerk finalizes the OAuth code generation and seamlessly kicks the user over to Product A's `redirect_uri`.
 
 ### 2. Webhook Syncing
 
