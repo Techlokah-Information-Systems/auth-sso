@@ -22,7 +22,9 @@ function SignInForm() {
   const [error, setError] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [needs2FA, setNeeds2FA] = React.useState(false);
-  const [factorMessage, setFactorMessage] = React.useState("Enter your authentication code.");
+  const [factorMessage, setFactorMessage] = React.useState(
+    "Enter your authentication code.",
+  );
   const [code, setCode] = React.useState("");
 
   React.useEffect(() => {
@@ -71,16 +73,31 @@ function SignInForm() {
             strategy: "phone_code",
             phoneNumberId: factor.phoneNumberId,
           });
-          setFactorMessage("Enter the 6-digit code sent via SMS to your phone.");
+          setFactorMessage(
+            "Enter the 6-digit code sent via SMS to your phone.",
+          );
+        } else if (factor && factor.strategy === "email_code") {
+          // This tells Clerk to actually send the email!
+          await signIn.prepareSecondFactor({
+            strategy: "email_code",
+            emailAddressId: factor.emailAddressId,
+          });
+          setFactorMessage(
+            `Enter the 6-digit code sent to ${factor.safeIdentifier}.`,
+          );
         } else if (factor && factor.strategy === "totp") {
-          setFactorMessage("Enter the 6-digit code from your Authenticator App (e.g., Google Authenticator).");
+          setFactorMessage(
+            "Enter the 6-digit code from your Authenticator App (e.g., Google Authenticator).",
+          );
         } else if (factor && factor.strategy === "backup_code") {
           setFactorMessage("Enter one of your emergency backup codes.");
         }
         setNeeds2FA(true);
       } else {
         console.error("SignIn Result not complete:", result);
-        setError(`Sign-in incomplete. Status: ${result.status}. Check console logs.`);
+        setError(
+          `Sign-in incomplete. Status: ${result.status}. Check console logs.`,
+        );
       }
     } catch (err: any) {
       console.error("Clerk Catch Error:", err);
@@ -129,7 +146,9 @@ function SignInForm() {
       }
     } catch (err: any) {
       console.error("Clerk 2FA Error:", err);
-      setError(err.errors?.[0]?.message || "Invalid 2FA code. Please try again.");
+      setError(
+        err.errors?.[0]?.message || "Invalid 2FA code. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -168,7 +187,9 @@ function SignInForm() {
             {needs2FA ? (
               <form onSubmit={handle2FA} className="flex flex-col gap-3">
                 <div className="text-center mb-2">
-                  <h2 className="text-[20px] font-bold text-[#1c1e21]">Two-Factor Authentication</h2>
+                  <h2 className="text-[20px] font-bold text-[#1c1e21]">
+                    Two-Factor Authentication
+                  </h2>
                   <p className="text-[14px] text-[#606770] mt-1">
                     {factorMessage}
                   </p>
@@ -179,7 +200,7 @@ function SignInForm() {
                     {error}
                   </div>
                 )}
-                
+
                 <input
                   type="text"
                   placeholder="6-digit code"
@@ -190,7 +211,7 @@ function SignInForm() {
                   className="w-full text-center tracking-[0.5em] font-mono text-[17px] p-[14px] border border-[#dddfe2] rounded-md outline-none focus:border-[#1877f2] focus:ring-1 focus:ring-[#1877f2] transition-colors bg-[#f5f6f7]"
                   disabled={loading}
                 />
-                
+
                 <button
                   type="submit"
                   className="w-full bg-[#1877f2] hover:bg-[#166fe5] text-white text-[20px] font-bold py-[10px] rounded-md mt-2 transition-colors disabled:opacity-50"
@@ -214,7 +235,7 @@ function SignInForm() {
                     {error}
                   </div>
                 )}
-                
+
                 <input
                   type="email"
                   placeholder="Email address"
@@ -224,7 +245,7 @@ function SignInForm() {
                   className="w-full text-[17px] p-[14px] border border-[#dddfe2] rounded-md outline-none focus:border-[#1877f2] focus:ring-1 focus:ring-[#1877f2] transition-colors"
                   disabled={loading}
                 />
-                
+
                 <input
                   type="password"
                   placeholder="Password"
@@ -234,7 +255,7 @@ function SignInForm() {
                   className="w-full text-[17px] p-[14px] border border-[#dddfe2] rounded-md outline-none focus:border-[#1877f2] focus:ring-1 focus:ring-[#1877f2] transition-colors"
                   disabled={loading}
                 />
-                
+
                 <button
                   type="submit"
                   className="w-full bg-[#1877f2] hover:bg-[#166fe5] text-white text-[20px] font-bold py-[10px] rounded-md mt-2 transition-colors disabled:opacity-50"
