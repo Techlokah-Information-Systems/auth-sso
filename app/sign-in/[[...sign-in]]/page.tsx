@@ -63,7 +63,7 @@ function SignInForm() {
         }
       } else {
         console.error("SignIn Result not complete:", result);
-        setError("Unable to complete sign in. Please try again.");
+        setError(`Sign-in incomplete. Status: ${result.status}. Check console logs.`);
       }
     } catch (err: any) {
       console.error("Clerk Catch Error:", err);
