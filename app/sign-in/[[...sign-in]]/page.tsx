@@ -22,6 +22,7 @@ function SignInForm() {
   const [error, setError] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [needs2FA, setNeeds2FA] = React.useState(false);
+  const [factorMessage, setFactorMessage] = React.useState("Enter your authentication code.");
   const [code, setCode] = React.useState("");
 
   React.useEffect(() => {
@@ -70,6 +71,11 @@ function SignInForm() {
             strategy: "phone_code",
             phoneNumberId: factor.phoneNumberId,
           });
+          setFactorMessage("Enter the 6-digit code sent via SMS to your phone.");
+        } else if (factor && factor.strategy === "totp") {
+          setFactorMessage("Enter the 6-digit code from your Authenticator App (e.g., Google Authenticator).");
+        } else if (factor && factor.strategy === "backup_code") {
+          setFactorMessage("Enter one of your emergency backup codes.");
         }
         setNeeds2FA(true);
       } else {
@@ -164,7 +170,7 @@ function SignInForm() {
                 <div className="text-center mb-2">
                   <h2 className="text-[20px] font-bold text-[#1c1e21]">Two-Factor Authentication</h2>
                   <p className="text-[14px] text-[#606770] mt-1">
-                    Enter the code sent to your device or authenticator app.
+                    {factorMessage}
                   </p>
                 </div>
 
