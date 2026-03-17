@@ -15,4 +15,21 @@ model User {
   last_name String?
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+
+  clients Client[]
+
+  @@index([clerk_id])
+}
+
+model Client {
+  id String @id @default(cuid())
+  clerk_client_id String @unique
+
+  user_id String
+  user User @relation(fields: [user_id], references: [id])
+  
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([clerk_client_id])
 }

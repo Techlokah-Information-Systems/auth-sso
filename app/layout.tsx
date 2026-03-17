@@ -1,22 +1,16 @@
 import type { Metadata } from "next";
-import { Geist_Mono, Poppins } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 
-const poppins = Poppins({
-  variable: "--font-poppins",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "Auth Hub Server",
-  description: "Centralized Authentication Server",
+  title: "Auth Gateway",
+  description: "Enterprise Single Sign-On Server",
 };
 
 export default function RootLayout({
@@ -29,7 +23,7 @@ export default function RootLayout({
       <html lang="en" suppressHydrationWarning>
         <body
           suppressHydrationWarning
-          className={`${poppins.className} ${geistMono.variable} antialiased`}
+          className={`${inter.className} ${inter.variable} antialiased bg-[#f0f2f5]`}
         >
           {children}
         </body>

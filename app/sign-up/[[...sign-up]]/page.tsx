@@ -3,17 +3,6 @@
 import * as React from "react";
 import { useSignUp } from "@clerk/nextjs";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import Link from "next/link";
 import { Loader } from "@/app/components/loader";
 import { Suspense } from "react";
@@ -23,7 +12,6 @@ function SignUpForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Getting the client_id if passed in the URL, as requested for the OAuth application feature
   const clientId = searchParams.get("client_id");
   const redirectUrl =
     searchParams.get("redirect_url") || searchParams.get("redirect_uri");
@@ -50,7 +38,6 @@ function SignUpForm() {
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
       setPendingVerification(true);
     } catch (err: any) {
-      console.error(JSON.stringify(err, null, 2));
       setError(
         err.errors?.[0]?.message || "Something went wrong. Please try again.",
       );
@@ -72,19 +59,15 @@ function SignUpForm() {
 
       if (completeSignUp.status === "complete") {
         await setActive({ session: completeSignUp.createdSessionId });
-        // Optional: If you need to redirect back to your client app in the OAuth flow,
-        // you might handle that here or use Clerk's default redirect behavior.
         if (redirectUrl) {
           router.push(redirectUrl);
         } else {
           router.push("/");
         }
       } else {
-        console.error(JSON.stringify(completeSignUp, null, 2));
         setError("Unable to complete sign up. Please try again.");
       }
     } catch (err: any) {
-      console.error(JSON.stringify(err, null, 2));
       setError(err.errors?.[0]?.message || "Invalid verification code.");
     } finally {
       setLoading(false);
@@ -93,132 +76,139 @@ function SignUpForm() {
 
   if (!isLoaded) {
     return (
-      <div className="relative flex min-h-screen w-full items-center justify-center p-4 overflow-hidden bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-black">
+      <div className="flex min-h-screen w-full items-center justify-center bg-[#f0f2f5]">
         <Loader />
       </div>
     );
   }
 
   return (
-    <div className="relative flex min-h-screen w-full items-center justify-center p-4 overflow-hidden">
-      {/* Background Gradients */}
-      <div className="absolute inset-0 bg-linear-to-br from-indigo-50 via-white to-cyan-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-black" />
-      <div className="absolute top-0 right-0 -mr-32 -mt-32 w-160 h-160 rounded-full bg-blue-300/30 dark:bg-indigo-600/20 blur-[130px] mix-blend-multiply dark:mix-blend-screen animate-pulse duration-1000" />
-      <div className="absolute bottom-0 left-0 -ml-32 -mb-32 w-140 h-140 rounded-full bg-purple-300/30 dark:bg-purple-900/30 blur-[130px] mix-blend-multiply dark:mix-blend-screen" />
+    <div className="flex min-h-screen w-full items-center justify-center bg-[#f0f2f5] px-4 font-sans">
+      <div className="flex flex-col lg:flex-row items-center justify-between w-full max-w-[980px] gap-8 lg:gap-16 pb-20">
+        
+        {/* Left Side: Branding / Messaging */}
+        <div className="flex-1 text-center lg:text-left pt-10 lg:pt-0">
+          <h1 className="text-5xl lg:text-[4rem] font-bold text-[#1877f2] tracking-tight mb-4">
+            AuthServer
+          </h1>
+          <p className="text-2xl lg:text-[28px] text-[#1c1e21] leading-tight">
+            Create an account to connect with all your enterprise products.
+          </p>
+          {clientId && (
+            <p className="mt-6 text-sm text-gray-500 bg-gray-200 inline-block px-3 py-1 rounded-full">
+              Connecting to: <span className="font-semibold">{clientId}</span>
+            </p>
+          )}
+        </div>
 
-      <Card className="relative z-10 w-full max-w-[420px] shadow-2xl border border-white/60 dark:border-white/10 bg-white/70 dark:bg-zinc-950/60 backdrop-blur-2xl rounded-3xl overflow-hidden">
-        <CardHeader className="space-y-2 text-center pb-6">
-          <CardTitle className="text-2xl font-semibold tracking-tight">
-            Create an account
-          </CardTitle>
-          <CardDescription className="text-sm text-muted-foreground">
-            {pendingVerification
-              ? "We've sent a verification code to your email."
-              : "Enter your email and password to sign up"}
-            {clientId && (
-              <span className="block mt-1 text-xs opacity-50">
-                Connecting to app: {clientId}
-              </span>
-            )}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {pendingVerification ? (
-            <form onSubmit={onPressVerify} className="space-y-4">
-              {error && (
-                <div className="text-sm font-medium text-destructive text-center p-2 bg-destructive/10 rounded-md">
-                  {error}
-                </div>
-              )}
-              <div className="space-y-2">
-                <Label htmlFor="code">Verification Code</Label>
-                <Input
-                  id="code"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  placeholder="Enter 6-digit code"
-                  required
-                  className="h-11 text-center text-lg tracking-widest font-mono"
-                  maxLength={6}
-                  disabled={loading}
-                />
-              </div>
-              <Button
-                type="submit"
-                className="w-full h-11 text-base font-medium"
-                disabled={loading}
-              >
-                {loading ? "Verifying..." : "Verify email"}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                className="w-full text-sm"
-                onClick={() => setPendingVerification(false)}
-              >
-                Back to sign up
-              </Button>
-            </form>
-          ) : (
-            <div className="space-y-5">
-              <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Right Side: Sign Up Card */}
+        <div className="w-full max-w-[400px]">
+          <div className="bg-white rounded-lg shadow-[0_2px_4px_rgba(0,0,0,0.1),0_8px_16px_rgba(0,0,0,0.1)] p-4 pt-6 pb-6">
+            
+            <div className="text-center mb-5">
+              <h2 className="text-[25px] font-bold text-[#1c1e21]">Sign Up</h2>
+              <p className="text-[15px] text-[#606770] mt-1">
+                {pendingVerification ? "Verify your email" : "It's quick and easy."}
+              </p>
+            </div>
+            
+            <div className="mb-5 border-b border-[#dadde1]" />
+
+            {pendingVerification ? (
+              <form onSubmit={onPressVerify} className="flex flex-col gap-3">
                 {error && (
-                  <div className="text-sm font-medium text-destructive text-center p-2 bg-destructive/10 rounded-md">
+                  <div className="text-[13px] text-[#f02849] p-2 bg-[#ffebe8] border border-[#dd3c10] text-center mb-1">
                     {error}
                   </div>
                 )}
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="name@example.com"
-                    value={emailAddress}
-                    onChange={(e) => setEmailAddress(e.target.value)}
-                    required
-                    className="h-11"
-                    disabled={loading}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="h-11"
-                    disabled={loading}
-                  />
-                </div>
-                <Button
+                <input
+                  type="text"
+                  placeholder="Enter 6-digit code"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  required
+                  maxLength={6}
+                  className="w-full text-center tracking-[0.5em] font-mono text-[17px] p-[14px] border border-[#dddfe2] rounded-md outline-none focus:border-[#1877f2] focus:ring-1 focus:ring-[#1877f2] transition-colors bg-[#f5f6f7]"
+                  disabled={loading}
+                />
+                
+                <button
                   type="submit"
-                  className="w-full h-11 text-base font-medium"
+                  className="w-full bg-[#1877f2] hover:bg-[#166fe5] text-white text-[18px] font-bold py-[10px] rounded-md mt-2 transition-colors disabled:opacity-50"
                   disabled={loading}
                 >
-                  {loading ? "Please wait..." : "Sign up"}
-                </Button>
+                  {loading ? "Verifying..." : "Verify email"}
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={() => setPendingVerification(false)}
+                  className="text-[#1877f2] text-[15px] hover:underline mt-2 font-semibold bg-transparent border-none cursor-pointer"
+                >
+                  Back
+                </button>
               </form>
-            </div>
-          )}
-        </CardContent>
-        <CardFooter className="flex flex-col gap-4 text-center text-sm text-muted-foreground mt-2 pb-6">
-          {!pendingVerification && (
-            <div>
-              Already have an account?{" "}
-              <Link
-                // Preserve query parameters when navigating back to sign-in
-                href={`/sign-in?${new URLSearchParams(Object.fromEntries(searchParams.entries())).toString()}`}
-                className="text-primary hover:underline font-medium"
-              >
-                Sign in
-              </Link>
-            </div>
-          )}
-        </CardFooter>
-      </Card>
+            ) : (
+              <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+                {error && (
+                  <div className="text-[13px] text-[#f02849] p-2 bg-[#ffebe8] border border-[#dd3c10] text-center mb-1">
+                    {error}
+                  </div>
+                )}
+                
+                <input
+                  type="email"
+                  placeholder="Email address"
+                  value={emailAddress}
+                  onChange={(e) => setEmailAddress(e.target.value)}
+                  required
+                  className="w-full text-[17px] p-[10px] bg-[#f5f6f7] border border-[#ccd0d5] rounded-[5px] outline-none focus:border-[#1877f2] focus:ring-1 focus:ring-[#1877f2] transition-colors"
+                  disabled={loading}
+                />
+                
+                <input
+                  type="password"
+                  placeholder="New password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="w-full text-[17px] p-[10px] bg-[#f5f6f7] border border-[#ccd0d5] rounded-[5px] outline-none focus:border-[#1877f2] focus:ring-1 focus:ring-[#1877f2] transition-colors"
+                  disabled={loading}
+                />
+                
+                <p className="text-[11px] text-[#777] leading-[1.3] mt-2 text-left">
+                  By clicking Sign Up, you agree to our Terms, Privacy Policy and Cookies Policy.
+                </p>
+
+                <div className="flex justify-center mt-3">
+                  <button
+                    type="submit"
+                    className="w-auto bg-[#00a400] hover:bg-[#008d00] text-white text-[18px] font-bold py-[8px] px-14 rounded-md transition-colors disabled:opacity-50"
+                    disabled={loading}
+                  >
+                    {loading ? "Please wait..." : "Sign Up"}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {!pendingVerification && (
+              <div className="text-center mt-5 pt-3 border-t border-[#dadde1]">
+                <Link
+                  href={`/sign-in?${new URLSearchParams(Object.fromEntries(searchParams.entries())).toString()}`}
+                  className="text-[#1877f2] text-[15px] font-semibold hover:underline"
+                >
+                  Already have an account?
+                </Link>
+              </div>
+            )}
+          </div>
+          
+          <div className="text-center mt-7 text-[#1c1e21] text-[14px]">
+            <span className="font-bold">Enterprise SSO</span> for seamless product access.
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -227,7 +217,7 @@ export default function SignUpPage() {
   return (
     <Suspense
       fallback={
-        <div className="relative flex min-h-screen w-full items-center justify-center p-4 overflow-hidden bg-linear-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-black">
+        <div className="flex min-h-screen w-full items-center justify-center bg-[#f0f2f5]">
           <Loader />
         </div>
       }
