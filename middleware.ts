@@ -19,7 +19,7 @@ export const config = {
   // This matches all routes EXCEPT static files (like .css, .png) and next internal routes (_next).
   // It ensures your API routes and pages get correctly logged and protected.
   matcher: [
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    '/(api|trpc)(.*)',
+    String.raw`/((?!_next|[^?]*\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)`,
+    String.raw`/(api|trpc)(.*)`,
   ],
 };
