@@ -21,6 +21,8 @@ function SignInForm() {
   const [password, setPassword] = React.useState("");
   const [error, setError] = React.useState("");
   const [loading, setLoading] = React.useState(false);
+  const [needs2FA, setNeeds2FA] = React.useState(false);
+  const [code, setCode] = React.useState("");
 
   React.useEffect(() => {
     // If the user is already logged in and we have a redirect URL, send them there immediately
@@ -61,6 +63,15 @@ function SignInForm() {
         } else {
           router.push("/");
         }
+      } else if (result.status === "needs_second_factor") {
+        const factor = signIn.supportedSecondFactors?.[0];
+        if (factor && factor.strategy === "phone_code") {
+          await signIn.prepareSecondFactor({
+            strategy: "phone_code",
+            phoneNumberId: factor.phoneNumberId,
+          });
+        }
+        setNeeds2FA(true);
       } else {
         console.error("SignIn Result not complete:", result);
         setError(`Sign-in incomplete. Status: ${result.status}. Check console logs.`);
@@ -78,6 +89,41 @@ function SignInForm() {
             "Invalid email or password. Please try again.",
         );
       }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handle2FA = async (e: React.SyntheticEvent) => {
+    e.preventDefault();
+    if (!isSignInLoaded) return;
+    setError("");
+    setLoading(true);
+
+    try {
+      const factor = signIn.supportedSecondFactors?.[0];
+      if (!factor) {
+        throw new Error("No 2FA methods found.");
+      }
+
+      const result = await signIn.attemptSecondFactor({
+        strategy: factor.strategy as any,
+        code,
+      });
+
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
+        if (redirectUrl) {
+          globalThis.location.href = redirectUrl;
+        } else {
+          router.push("/");
+        }
+      } else {
+        setError(`2FA incomplete. Status: ${result.status}`);
+      }
+    } catch (err: any) {
+      console.error("Clerk 2FA Error:", err);
+      setError(err.errors?.[0]?.message || "Invalid 2FA code. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -113,41 +159,85 @@ function SignInForm() {
         {/* Right Side: Login Card */}
         <div className="w-full max-w-[400px]">
           <div className="bg-white rounded-lg shadow-[0_2px_4px_rgba(0,0,0,0.1),0_8px_16px_rgba(0,0,0,0.1)] p-4 pt-6 pb-6">
-            <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-              {error && (
-                <div className="text-[13px] text-[#f02849] p-2 bg-[#ffebe8] border border-[#dd3c10] text-center mb-1">
-                  {error}
+            {needs2FA ? (
+              <form onSubmit={handle2FA} className="flex flex-col gap-3">
+                <div className="text-center mb-2">
+                  <h2 className="text-[20px] font-bold text-[#1c1e21]">Two-Factor Authentication</h2>
+                  <p className="text-[14px] text-[#606770] mt-1">
+                    Enter the code sent to your device or authenticator app.
+                  </p>
                 </div>
-              )}
 
-              <input
-                type="email"
-                placeholder="Email address"
-                value={emailAddress}
-                onChange={(e) => setEmailAddress(e.target.value)}
-                required
-                className="w-full text-[17px] p-[14px] border border-[#dddfe2] rounded-md outline-none focus:border-[#1877f2] focus:ring-1 focus:ring-[#1877f2] transition-colors"
-                disabled={loading}
-              />
+                {error && (
+                  <div className="text-[13px] text-[#f02849] p-2 bg-[#ffebe8] border border-[#dd3c10] text-center mb-1">
+                    {error}
+                  </div>
+                )}
+                
+                <input
+                  type="text"
+                  placeholder="6-digit code"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  required
+                  maxLength={6}
+                  className="w-full text-center tracking-[0.5em] font-mono text-[17px] p-[14px] border border-[#dddfe2] rounded-md outline-none focus:border-[#1877f2] focus:ring-1 focus:ring-[#1877f2] transition-colors bg-[#f5f6f7]"
+                  disabled={loading}
+                />
+                
+                <button
+                  type="submit"
+                  className="w-full bg-[#1877f2] hover:bg-[#166fe5] text-white text-[20px] font-bold py-[10px] rounded-md mt-2 transition-colors disabled:opacity-50"
+                  disabled={loading}
+                >
+                  {loading ? "Verifying..." : "Verify Code"}
+                </button>
 
-              <input
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full text-[17px] p-[14px] border border-[#dddfe2] rounded-md outline-none focus:border-[#1877f2] focus:ring-1 focus:ring-[#1877f2] transition-colors"
-                disabled={loading}
-              />
-
-              <button
-                type="submit"
-                className="w-full bg-[#1877f2] hover:bg-[#166fe5] text-white text-[20px] font-bold py-[10px] rounded-md mt-2 transition-colors disabled:opacity-50"
-                disabled={loading}
-              >
-                {loading ? "Signing in..." : "Log In"}
-              </button>
-            </form>
+                <button
+                  type="button"
+                  onClick={() => setNeeds2FA(false)}
+                  className="text-[#1877f2] text-[14px] hover:underline bg-transparent border-none cursor-pointer mt-2"
+                >
+                  Cancel
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+                {error && (
+                  <div className="text-[13px] text-[#f02849] p-2 bg-[#ffebe8] border border-[#dd3c10] text-center mb-1">
+                    {error}
+                  </div>
+                )}
+                
+                <input
+                  type="email"
+                  placeholder="Email address"
+                  value={emailAddress}
+                  onChange={(e) => setEmailAddress(e.target.value)}
+                  required
+                  className="w-full text-[17px] p-[14px] border border-[#dddfe2] rounded-md outline-none focus:border-[#1877f2] focus:ring-1 focus:ring-[#1877f2] transition-colors"
+                  disabled={loading}
+                />
+                
+                <input
+                  type="password"
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="w-full text-[17px] p-[14px] border border-[#dddfe2] rounded-md outline-none focus:border-[#1877f2] focus:ring-1 focus:ring-[#1877f2] transition-colors"
+                  disabled={loading}
+                />
+                
+                <button
+                  type="submit"
+                  className="w-full bg-[#1877f2] hover:bg-[#166fe5] text-white text-[20px] font-bold py-[10px] rounded-md mt-2 transition-colors disabled:opacity-50"
+                  disabled={loading}
+                >
+                  {loading ? "Signing in..." : "Log In"}
+                </button>
+              </form>
+            )}
 
             <div className="text-center mt-4">
               <button
