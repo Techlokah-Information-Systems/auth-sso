@@ -39,7 +39,7 @@ function SignInForm() {
       // If session exists but useEffect hasn't redirected yet, force the redirect instead of throwing an error when signing in again.
       if (isSessionLoaded && session) {
         if (redirectUrl) {
-          router.push(redirectUrl);
+          globalThis.location.href = redirectUrl; // Force full redirect to ensure cookies persist cross-domain
           return;
         } else {
           router.push("/");
@@ -52,25 +52,30 @@ function SignInForm() {
         password,
       });
 
+      console.log("Clerk SignIn Result:", JSON.stringify(result, null, 2));
+
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
         if (redirectUrl) {
-          router.push(redirectUrl);
+          globalThis.location.href = redirectUrl; // Force full redirect to break out of next/navigation SPA mode
         } else {
           router.push("/");
         }
       } else {
+        console.error("SignIn Result not complete:", result);
         setError("Unable to complete sign in. Please try again.");
       }
     } catch (err: any) {
+      console.error("Clerk Catch Error:", err);
       // Clerk throws an error if a user tries to sign in while already signed in.
       if (err.errors?.[0]?.code === "form_password_incorrect") {
-         setError("Invalid email or password. Please try again.");
+        setError("Invalid email or password. Please try again.");
       } else if (err.errors?.[0]?.code === "identifier_not_found") {
-         setError("We couldn't find an account matching that email.");
+        setError("We couldn't find an account matching that email.");
       } else {
         setError(
-          err.errors?.[0]?.message || "Invalid email or password. Please try again.",
+          err.errors?.[0]?.message ||
+            "Invalid email or password. Please try again.",
         );
       }
     } finally {
@@ -89,14 +94,14 @@ function SignInForm() {
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-[#f0f2f5] px-4 font-sans">
       <div className="flex flex-col lg:flex-row items-center justify-between w-full max-w-[980px] gap-8 lg:gap-16 pb-20">
-        
         {/* Left Side: Branding / Messaging */}
         <div className="flex-1 text-center lg:text-left pt-10 lg:pt-0">
           <h1 className="text-5xl lg:text-[4rem] font-bold text-[#1877f2] tracking-tight mb-4">
             AuthServer
           </h1>
           <p className="text-2xl lg:text-[28px] text-[#1c1e21] leading-tight">
-            Connect to all your enterprise products with a single seamless sign-in.
+            Connect to all your enterprise products with a single seamless
+            sign-in.
           </p>
           {clientId && (
             <p className="mt-6 text-sm text-gray-500 bg-gray-200 inline-block px-3 py-1 rounded-full">
@@ -114,7 +119,7 @@ function SignInForm() {
                   {error}
                 </div>
               )}
-              
+
               <input
                 type="email"
                 placeholder="Email address"
@@ -124,7 +129,7 @@ function SignInForm() {
                 className="w-full text-[17px] p-[14px] border border-[#dddfe2] rounded-md outline-none focus:border-[#1877f2] focus:ring-1 focus:ring-[#1877f2] transition-colors"
                 disabled={loading}
               />
-              
+
               <input
                 type="password"
                 placeholder="Password"
@@ -134,7 +139,7 @@ function SignInForm() {
                 className="w-full text-[17px] p-[14px] border border-[#dddfe2] rounded-md outline-none focus:border-[#1877f2] focus:ring-1 focus:ring-[#1877f2] transition-colors"
                 disabled={loading}
               />
-              
+
               <button
                 type="submit"
                 className="w-full bg-[#1877f2] hover:bg-[#166fe5] text-white text-[20px] font-bold py-[10px] rounded-md mt-2 transition-colors disabled:opacity-50"
@@ -145,7 +150,10 @@ function SignInForm() {
             </form>
 
             <div className="text-center mt-4">
-              <button type="button" className="text-[#1877f2] text-[14px] hover:underline bg-transparent border-none cursor-pointer p-0 m-0">
+              <button
+                type="button"
+                className="text-[#1877f2] text-[14px] hover:underline bg-transparent border-none cursor-pointer p-0 m-0"
+              >
                 Forgotten password?
               </button>
             </div>
@@ -161,9 +169,10 @@ function SignInForm() {
               </Link>
             </div>
           </div>
-          
+
           <div className="text-center mt-7 text-[#1c1e21] text-[14px]">
-            <span className="font-bold">Enterprise SSO</span> for seamless product access.
+            <span className="font-bold">Enterprise SSO</span> for seamless
+            product access.
           </div>
         </div>
       </div>
