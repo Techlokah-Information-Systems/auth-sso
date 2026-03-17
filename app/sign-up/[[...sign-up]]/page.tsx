@@ -1,14 +1,15 @@
 "use client";
 
 import * as React from "react";
-import { useSignUp } from "@clerk/nextjs";
+import { useSignUp, useSession } from "@clerk/nextjs";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Loader } from "@/app/components/loader";
 import { Suspense } from "react";
 
 function SignUpForm() {
-  const { isLoaded, signUp, setActive } = useSignUp();
+  const { isLoaded: isSignUpLoaded, signUp, setActive } = useSignUp();
+  const { isLoaded: isSessionLoaded, session } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -23,9 +24,16 @@ function SignUpForm() {
   const [error, setError] = React.useState("");
   const [loading, setLoading] = React.useState(false);
 
+  React.useEffect(() => {
+    // Auto-redirect if user already has an active session and a redirect URL
+    if (isSessionLoaded && session && redirectUrl) {
+      router.push(redirectUrl);
+    }
+  }, [isSessionLoaded, session, redirectUrl, router]);
+
   const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
-    if (!isLoaded) return;
+    if (!isSignUpLoaded) return;
     setError("");
     setLoading(true);
 
@@ -48,7 +56,7 @@ function SignUpForm() {
 
   const onPressVerify = async (e: React.SyntheticEvent) => {
     e.preventDefault();
-    if (!isLoaded) return;
+    if (!isSignUpLoaded || !signUp) return;
     setError("");
     setLoading(true);
 
@@ -57,7 +65,7 @@ function SignUpForm() {
         code,
       });
 
-      if (completeSignUp.status === "complete") {
+      if (completeSignUp.status === "complete" && setActive) {
         await setActive({ session: completeSignUp.createdSessionId });
         if (redirectUrl) {
           router.push(redirectUrl);
@@ -74,7 +82,7 @@ function SignUpForm() {
     }
   };
 
-  if (!isLoaded) {
+  if (!isSignUpLoaded || !isSessionLoaded || (session && redirectUrl)) {
     return (
       <div className="flex min-h-screen w-full items-center justify-center bg-[#f0f2f5]">
         <Loader />

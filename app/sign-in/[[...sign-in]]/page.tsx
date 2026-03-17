@@ -1,14 +1,15 @@
 "use client";
 
 import * as React from "react";
-import { useSignIn } from "@clerk/nextjs";
+import { useSignIn, useSession } from "@clerk/nextjs";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Loader } from "@/app/components/loader";
 import { Suspense } from "react";
 
 function SignInForm() {
-  const { isLoaded, signIn, setActive } = useSignIn();
+  const { isLoaded: isSignInLoaded, signIn, setActive } = useSignIn();
+  const { isLoaded: isSessionLoaded, session } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -21,9 +22,16 @@ function SignInForm() {
   const [error, setError] = React.useState("");
   const [loading, setLoading] = React.useState(false);
 
+  React.useEffect(() => {
+    // If the user is already logged in and we have a redirect URL, send them there immediately
+    if (isSessionLoaded && session && redirectUrl) {
+      router.push(redirectUrl);
+    }
+  }, [isSessionLoaded, session, redirectUrl, router]);
+
   const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
-    if (!isLoaded) return;
+    if (!isSignInLoaded) return;
     setError("");
     setLoading(true);
 
@@ -52,7 +60,7 @@ function SignInForm() {
     }
   };
 
-  if (!isLoaded) {
+  if (!isSignInLoaded || !isSessionLoaded || (session && redirectUrl)) {
     return (
       <div className="flex min-h-screen w-full items-center justify-center bg-[#f0f2f5]">
         <Loader />
