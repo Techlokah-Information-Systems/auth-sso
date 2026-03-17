@@ -38,6 +38,17 @@ function SignUpForm() {
     setLoading(true);
 
     try {
+      // Short-circuit if session exists
+      if (isSessionLoaded && session) {
+        if (redirectUrl) {
+          router.push(redirectUrl);
+          return;
+        } else {
+          router.push("/");
+          return;
+        }
+      }
+
       await signUp.create({
         emailAddress,
         password,

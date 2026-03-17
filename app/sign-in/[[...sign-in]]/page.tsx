@@ -36,6 +36,17 @@ function SignInForm() {
     setLoading(true);
 
     try {
+      // If session exists but useEffect hasn't redirected yet, force the redirect instead of throwing an error when signing in again.
+      if (isSessionLoaded && session) {
+        if (redirectUrl) {
+          router.push(redirectUrl);
+          return;
+        } else {
+          router.push("/");
+          return;
+        }
+      }
+
       const result = await signIn.create({
         identifier: emailAddress,
         password,
@@ -52,9 +63,16 @@ function SignInForm() {
         setError("Unable to complete sign in. Please try again.");
       }
     } catch (err: any) {
-      setError(
-        err.errors?.[0]?.message || "Invalid email or password. Please try again.",
-      );
+      // Clerk throws an error if a user tries to sign in while already signed in.
+      if (err.errors?.[0]?.code === "form_password_incorrect") {
+         setError("Invalid email or password. Please try again.");
+      } else if (err.errors?.[0]?.code === "identifier_not_found") {
+         setError("We couldn't find an account matching that email.");
+      } else {
+        setError(
+          err.errors?.[0]?.message || "Invalid email or password. Please try again.",
+        );
+      }
     } finally {
       setLoading(false);
     }
