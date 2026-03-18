@@ -6,7 +6,20 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Loader } from "@/app/components/loader";
 import { Suspense } from "react";
-import { ArrowRight, Eye, Check } from "lucide-react";
+import { ArrowRight, Eye } from "lucide-react";
+import { checkRateLimit } from "@/app/actions/ratelimit";
+import { linkUserWithClient } from "@/app/actions/auth";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSeparator,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
+import Image from "next/image";
 
 export function SignUpForm() {
   const { isLoaded: isSignUpLoaded, signUp, setActive } = useSignUp();
@@ -15,7 +28,6 @@ export function SignUpForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const clientId = searchParams.get("client_id");
   const redirectUrl =
     searchParams.get("redirect_url") || searchParams.get("redirect_uri");
 
@@ -23,13 +35,14 @@ export function SignUpForm() {
   const [lastName, setLastName] = React.useState("");
   const [emailAddress, setEmailAddress] = React.useState("");
   const [password, setPassword] = React.useState("");
-  
+
   const [pendingVerification, setPendingVerification] = React.useState(false);
   const [code, setCode] = React.useState("");
   const [error, setError] = React.useState("");
   const [loading, setLoading] = React.useState(false);
-  
+
   const [showPassword, setShowPassword] = React.useState(false);
+  const [agreed, setAgreed] = React.useState(false);
 
   React.useEffect(() => {
     // Auto-redirect if user already has an active session and a redirect URL
@@ -45,10 +58,21 @@ export function SignUpForm() {
   const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     if (!isSignUpLoaded) return;
+    if (!agreed) {
+      setError("Please agree to the Terms & Conditions.");
+      return;
+    }
     setError("");
     setLoading(true);
 
     try {
+      const rateLimitResult = await checkRateLimit("sign-up");
+      if (!rateLimitResult.success) {
+        setError(rateLimitResult.error || "Too many requests.");
+        setLoading(false);
+        return;
+      }
+
       // Short-circuit if session exists
       if (isSessionLoaded && session) {
         if (redirectUrl) {
@@ -85,11 +109,22 @@ export function SignUpForm() {
     setLoading(true);
 
     try {
+      const rateLimitResult = await checkRateLimit("sign-up-verify");
+      if (!rateLimitResult.success) {
+        setError(rateLimitResult.error || "Too many requests.");
+        setLoading(false);
+        return;
+      }
+
       const completeSignUp = await signUp.attemptEmailAddressVerification({
         code,
       });
 
       if (completeSignUp.status === "complete" && setActive) {
+        if (clerk.client?.id && completeSignUp.createdSessionId) {
+          await linkUserWithClient(completeSignUp.createdSessionId, clerk.client.id);
+        }
+        
         await setActive({ session: completeSignUp.createdSessionId });
         if (redirectUrl) {
           globalThis.location.href = clerk.buildUrlWithAuth(redirectUrl);
@@ -106,6 +141,21 @@ export function SignUpForm() {
     }
   };
 
+  const handleGoogleSignUp = async () => {
+    if (!isSignUpLoaded) return;
+    setLoading(true);
+    try {
+      await signUp.authenticateWithRedirect({
+        strategy: "oauth_google",
+        redirectUrl: "/sso-callback",
+        redirectUrlComplete: `/sso-callback?complete=true&redirect=${encodeURIComponent(redirectUrl || "/")}`,
+      });
+    } catch (err: any) {
+      setError(err.errors?.[0]?.message || "Failed to authenticate with Google.");
+      setLoading(false);
+    }
+  };
+
   if (!isSignUpLoaded || !isSessionLoaded || (session && redirectUrl)) {
     return (
       <div className="flex min-h-screen w-full items-center justify-center bg-[#5d5971]">
@@ -117,53 +167,65 @@ export function SignUpForm() {
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-[#4f4a65] p-4 md:p-8 font-sans antialiased">
       <div className="flex flex-col md:flex-row w-full max-w-[1100px] h-auto md:h-[700px] bg-[#2a2736] rounded-[24px] overflow-hidden shadow-2xl relative">
-        
         {/* Left Side Branding */}
         <div className="relative hidden md:flex flex-col w-1/2 p-8 text-white overflow-hidden rounded-l-[24px] bg-[#3a3556]">
-           {/* Background Image Absolute */}
-           <div 
-             className="absolute inset-0 opacity-80" 
-             style={{
-               backgroundImage: 'url("https://images.unsplash.com/photo-1549488344-1f9b8d2bd1f3?auto=format&fit=crop&q=80")',
-               backgroundSize: 'cover',
-               backgroundPosition: 'center',
-             }}
-           />
-           {/* Inner Content */}
-           <div className="relative z-10 flex justify-between items-center w-full">
-             <div className="font-bold text-2xl tracking-widest flex items-center gap-1">
-               {/* Logo mock AMU */}
-               <svg width="40" height="20" viewBox="0 0 40 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                 <path d="M4.5 18L10 4L15.5 18M10 4H30M25 18L30 4L35 18" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-               </svg>
-             </div>
-             <a href="/" className="bg-white/20 hover:bg-white/30 transition-colors backdrop-blur-md text-white text-[13px] px-4 py-2 rounded-full flex items-center gap-2">
-               Back to website <ArrowRight size={14} />
-             </a>
-           </div>
-
-           <div className="relative z-10 mt-auto pb-4">
-             <h2 className="text-[32px] font-medium leading-[1.2] mb-6">
-               Capturing Moments,<br/>Creating Memories
-             </h2>
-             <div className="flex gap-2 items-center">
-                <div className="w-8 h-1 bg-white/30 rounded-full cursor-pointer"></div>
-                <div className="w-8 h-1 bg-white/30 rounded-full cursor-pointer"></div>
-                <div className="w-12 h-1 bg-white rounded-full cursor-pointer flex-shrink-0 relative overflow-hidden">
-                   {/* Animated line indicator */}
-                   <div className="absolute top-0 left-0 h-full bg-white animate-[pulse_2s_ease-in-out_infinite] w-full"></div>
-                </div>
-             </div>
-           </div>
+          {/* Background Image Absolute */}
+          <div
+            className="absolute inset-0 opacity-80"
+            style={{
+              backgroundImage:
+                'url("https://images.unsplash.com/photo-1549488344-1f9b8d2bd1f3?auto=format&fit=crop&q=80")',
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }}
+          />
+          {/* Inner Content */}
+          <div className="relative z-10 flex justify-between items-center w-full">
+            <div className="font-bold text-2xl tracking-widest flex items-center gap-1">
+              <div className="flex items-center gap-2 bg-white/20 px-5 py-1 rounded-full">
+                <Image
+                  src={"/logo.png"}
+                  alt="Tlinsy Logo"
+                  width={25}
+                  height={25}
+                />
+                <span className="text-lg font-bold tracking-normal">
+                  tlinsy.
+                </span>
+              </div>
+            </div>
+            <Link
+              href="/"
+              className="bg-white/20 hover:bg-white/30 transition-colors backdrop-blur-md text-white text-[13px] px-4 py-2 rounded-full flex items-center gap-2"
+            >
+              Back to website <ArrowRight size={14} />
+            </Link>
+          </div>
+          <div className="relative z-10 mt-auto pb-4">
+            <h2 className="text-[32px] font-medium leading-[1.2] mb-6">
+              Capturing Moments,
+              <br />
+              Creating Memories
+            </h2>
+            <div className="flex gap-2 items-center">
+              <div className="w-8 h-1 bg-white/30 rounded-full cursor-pointer"></div>
+              <div className="w-8 h-1 bg-white/30 rounded-full cursor-pointer"></div>
+              <div className="w-12 h-1 bg-white rounded-full cursor-pointer shrink-0 relative overflow-hidden">
+                {/* Animated line indicator */}
+                <div className="absolute top-0 left-0 h-full bg-white animate-[pulse_2s_ease-in-out_infinite] w-full"></div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Right Side Form */}
         <div className="flex w-full md:w-1/2 flex-col p-8 md:p-14 lg:px-20 justify-center h-full overflow-y-auto">
-          
-          <h1 className="text-white text-[32px] md:text-[40px] font-medium mb-2 tracking-tight">Create an account</h1>
+          <h1 className="text-white text-[32px] md:text-[40px] font-medium mb-2 tracking-tight">
+            Create an account
+          </h1>
           <p className="text-[#a39fb5] text-[15px] mb-8">
             Already have an account?{" "}
-            <Link 
+            <Link
               href={`/sign-in?${new URLSearchParams(Object.fromEntries(searchParams.entries())).toString()}`}
               className="text-[#8a6df2] hover:underline"
             >
@@ -172,29 +234,59 @@ export function SignUpForm() {
           </p>
 
           {pendingVerification ? (
-             <form onSubmit={onPressVerify} className="flex flex-col gap-4">
-               {error && (
+            <form onSubmit={onPressVerify} className="flex flex-col gap-4">
+              {error && (
                 <div className="text-[13px] text-[#f02849] p-3 bg-[#ffebe8]/10 border border-[#f02849]/50 rounded-[6px]">
                   {error}
                 </div>
               )}
-              <div className="flex flex-col gap-2">
-                <input
-                  type="text"
-                  placeholder="Enter 6-digit code sent to your email"
+              <div className="flex flex-col gap-2 items-center w-full py-4">
+                <Label className="text-[#a39fb5] self-start mb-2">
+                  Enter 6-digit code sent to your email
+                </Label>
+                <InputOTP
+                  maxLength={6}
                   value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  className="w-full bg-[#3a3648] border border-transparent text-white px-5 py-4 rounded-[6px] outline-none focus:border-[#8a6df2] focus:ring-1 focus:ring-[#8a6df2] transition-colors placeholder:text-[#837f95]"
-                  required
-                />
+                  onChange={(val) => setCode(val)}
+                >
+                  <InputOTPGroup>
+                    <InputOTPSlot
+                      index={0}
+                      className="w-12 h-14 md:w-14 items-center justify-center bg-[#3a3648] border-transparent text-white text-xl rounded-l-[6px] focus-visible:ring-1 focus-visible:ring-[#8a6df2]"
+                    />
+                    <InputOTPSlot
+                      index={1}
+                      className="w-12 h-14 md:w-14 items-center justify-center bg-[#3a3648] border-transparent border-l-[#4a4658]/50 text-white text-xl focus-visible:ring-1 focus-visible:ring-[#8a6df2]"
+                    />
+                    <InputOTPSlot
+                      index={2}
+                      className="w-12 h-14 md:w-14 items-center justify-center bg-[#3a3648] border-transparent border-l-[#4a4658]/50 text-white text-xl rounded-r-[6px] focus-visible:ring-1 focus-visible:ring-[#8a6df2]"
+                    />
+                  </InputOTPGroup>
+                  <InputOTPSeparator className="text-[#837f95]" />
+                  <InputOTPGroup>
+                    <InputOTPSlot
+                      index={3}
+                      className="w-12 h-14 md:w-14 items-center justify-center bg-[#3a3648] border-transparent text-white text-xl rounded-l-[6px] focus-visible:ring-1 focus-visible:ring-[#8a6df2]"
+                    />
+                    <InputOTPSlot
+                      index={4}
+                      className="w-12 h-14 md:w-14 items-center justify-center bg-[#3a3648] border-transparent border-l-[#4a4658]/50 text-white text-xl focus-visible:ring-1 focus-visible:ring-[#8a6df2]"
+                    />
+                    <InputOTPSlot
+                      index={5}
+                      className="w-12 h-14 md:w-14 items-center justify-center bg-[#3a3648] border-transparent border-l-[#4a4658]/50 text-white text-xl rounded-r-[6px] focus-visible:ring-1 focus-visible:ring-[#8a6df2]"
+                    />
+                  </InputOTPGroup>
+                </InputOTP>
               </div>
-              <button
+              <Button
                 type="submit"
-                className="w-full bg-[#7a5af8] hover:bg-[#6b4ce6] text-white py-4 rounded-[6px] font-medium transition-colors mt-2 disabled:opacity-50"
-                disabled={loading}
+                className="w-full bg-[#7a5af8] hover:bg-[#6b4ce6] text-white h-14 rounded-[6px] text-base font-medium transition-colors mt-2"
+                disabled={loading || code.length < 6}
               >
                 {loading ? "Verifying..." : "Verify email"}
-              </button>
+              </Button>
               <button
                 type="button"
                 onClick={() => setPendingVerification(false)}
@@ -210,42 +302,42 @@ export function SignUpForm() {
                   {error}
                 </div>
               )}
-              
+
               <div className="flex gap-4">
-                <input
+                <Input
                   type="text"
                   placeholder="First name"
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
-                  className="w-1/2 bg-[#3a3648] border border-transparent text-white px-5 py-4 rounded-[6px] outline-none focus:border-[#8a6df2] focus:ring-1 focus:ring-[#8a6df2] transition-colors placeholder:text-[#837f95]"
+                  className="w-1/2 bg-[#3a3648] border-transparent text-white px-5 h-14 rounded-[6px] outline-none focus-visible:ring-1 focus-visible:ring-[#8a6df2] transition-colors placeholder:text-[#837f95]"
                   required
                 />
-                <input
+                <Input
                   type="text"
                   placeholder="Last name"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
-                  className="w-1/2 bg-[#3a3648] border border-transparent text-white px-5 py-4 rounded-[6px] outline-none focus:border-[#8a6df2] focus:ring-1 focus:ring-[#8a6df2] transition-colors placeholder:text-[#837f95]"
+                  className="w-1/2 bg-[#3a3648] border-transparent text-white px-5 h-14 rounded-[6px] outline-none focus-visible:ring-1 focus-visible:ring-[#8a6df2] transition-colors placeholder:text-[#837f95]"
                   required
                 />
               </div>
 
-              <input
+              <Input
                 type="email"
                 placeholder="Email"
                 value={emailAddress}
                 onChange={(e) => setEmailAddress(e.target.value)}
-                className="w-full bg-[#3a3648] border border-transparent text-white px-5 py-4 rounded-[6px] outline-none focus:border-[#8a6df2] focus:ring-1 focus:ring-[#8a6df2] transition-colors placeholder:text-[#837f95]"
+                className="w-full bg-[#3a3648] border-transparent text-white px-5 h-14 rounded-[6px] outline-none focus-visible:ring-1 focus-visible:ring-[#8a6df2] transition-colors placeholder:text-[#837f95]"
                 required
               />
 
               <div className="relative flex items-center">
-                <input
+                <Input
                   type={showPassword ? "text" : "password"}
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-[#3a3648] border border-transparent text-white pl-5 pr-14 py-4 rounded-[6px] outline-none focus:border-[#8a6df2] focus:ring-1 focus:ring-[#8a6df2] transition-colors placeholder:text-[#837f95]"
+                  className="w-full bg-[#3a3648] border-transparent text-white pl-5 pr-14 h-14 rounded-[6px] outline-none focus-visible:ring-1 focus-visible:ring-[#8a6df2] transition-colors placeholder:text-[#837f95]"
                   required
                 />
                 <button
@@ -258,43 +350,56 @@ export function SignUpForm() {
               </div>
 
               <div className="flex items-center gap-3 mt-2 mb-2">
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <div className="relative flex items-center justify-center w-5 h-5 rounded-[4px] border border-[#837f95] bg-[#3a3648] group-has-[:checked]:bg-white group-has-[:checked]:border-white transition-colors">
-                     <input type="checkbox" required className="peer opacity-0 absolute select-none w-5 h-5 cursor-pointer z-10" />
-                     <Check size={14} className="text-[#3a3648] opacity-0 peer-checked:opacity-100 transition-opacity" />
-                  </div>
-                  <span className="text-[14px] text-white select-none">
-                    I agree to the <Link href="/terms" className="text-[#8a6df2] hover:underline">Terms & Conditions</Link>
-                  </span>
-                </label>
+                <Checkbox
+                  id="terms"
+                  checked={agreed}
+                  onCheckedChange={(checked) => setAgreed(checked as boolean)}
+                  className="border-[#837f95] data-[state=checked]:bg-white data-[state=checked]:text-[#3a3648] h-5 w-5 rounded-[4px]"
+                />
+                <Label
+                  htmlFor="terms"
+                  className="text-[14px] text-white leading-none cursor-pointer font-normal"
+                >
+                  I agree to the{" "}
+                  <Link
+                    href="/terms"
+                    className="text-[#8a6df2] hover:underline"
+                  >
+                    Terms & Conditions
+                  </Link>
+                </Label>
               </div>
 
-              <button
+              <Button
                 type="submit"
-                className="w-full bg-[#7a5af8] hover:bg-[#6b4ce6] text-white py-4 rounded-[6px] font-medium transition-colors mt-2 disabled:opacity-50"
+                className="w-full bg-[#7a5af8] hover:bg-[#6b4ce6] text-white h-14 rounded-[6px] text-base font-medium transition-colors mt-2"
                 disabled={loading}
               >
                 {loading ? "Creating..." : "Create account"}
-              </button>
+              </Button>
 
-              <div className="relative flex items-center justify-center mt-6 mb-2">
-                <div className="absolute w-full border-t border-[#4a4658]"></div>
-                <span className="bg-[#2a2736] px-4 text-[#837f95] text-[13px] relative z-10">Or register with</span>
+              <div className="flex gap-4 items-center w-full my-4">
+                <div className="h-px w-full bg-[#4a4658]"></div>
+                <span className="text-[#837f95] text-[13px] uppercase tracking-wider font-semibold">Or</span>
+                <div className="h-px w-full bg-[#4a4658]"></div>
               </div>
 
-              <div className="flex gap-4">
-                <button type="button" className="flex-1 flex items-center justify-center gap-2 border border-[#4a4658] hover:bg-[#3a3648] text-white py-3 rounded-[6px] transition-colors text-[14px]">
-                  <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg"><g transform="matrix(1, 0, 0, 1, 27.009001, -39.238998)"><path fill="#4285F4" d="M -3.264 51.509 C -3.264 50.719 -3.334 49.969 -3.454 49.239 L -14.754 49.239 L -14.754 53.749 L -8.284 53.749 C -8.574 55.229 -9.424 56.479 -10.684 57.329 L -10.684 60.329 L -6.824 60.329 C -4.564 58.239 -3.264 55.159 -3.264 51.509 Z"/><path fill="#34A853" d="M -14.754 63.239 C -11.514 63.239 -8.804 62.159 -6.824 60.329 L -10.684 57.329 C -11.764 58.049 -13.134 58.489 -14.754 58.489 C -17.884 58.489 -20.534 56.379 -21.484 53.529 L -25.464 53.529 L -25.464 56.619 C -23.494 60.539 -19.444 63.239 -14.754 63.239 Z"/><path fill="#FBBC05" d="M -21.484 53.529 C -21.734 52.809 -21.864 52.039 -21.864 51.239 C -21.864 50.439 -21.724 49.669 -21.484 48.949 L -21.484 45.859 L -25.464 45.859 C -26.284 47.479 -26.754 49.299 -26.754 51.239 C -26.754 53.179 -26.284 54.999 -25.464 56.619 L -21.484 53.529 Z"/><path fill="#EA4335" d="M -14.754 43.989 C -12.984 43.989 -11.404 44.599 -10.154 45.789 L -6.734 42.369 C -8.804 40.429 -11.514 39.239 -14.754 39.239 C -19.444 39.239 -23.494 41.939 -25.464 45.859 L -21.484 48.949 C -20.534 46.099 -17.884 43.989 -14.754 43.989 Z"/></g></svg>
-                  Google
-                </button>
-                <button type="button" className="flex-1 flex items-center justify-center gap-2 border border-[#4a4658] hover:bg-[#3a3648] text-white py-3 rounded-[6px] transition-colors text-[14px]">
-                  <svg width="18" height="18" viewBox="0 0 384 512" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
-                  Apple
-                </button>
-              </div>
+              <Button
+                type="button"
+                onClick={handleGoogleSignUp}
+                disabled={loading}
+                className="w-full bg-[#3a3648] hover:bg-[#4a4658] border-transparent text-white h-14 rounded-[6px] outline-none transition-colors flex items-center justify-center gap-3 text-base font-medium"
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                </svg>
+                Continue with Google
+              </Button>
             </form>
           )}
-
         </div>
       </div>
     </div>
@@ -303,7 +408,13 @@ export function SignUpForm() {
 
 export default function SignUpPage() {
   return (
-    <Suspense fallback={<div className="flex min-h-screen w-full items-center justify-center bg-[#4f4a65]"><Loader /></div>}>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen w-full items-center justify-center bg-[#4f4a65]">
+          <Loader />
+        </div>
+      }
+    >
       <SignUpForm />
     </Suspense>
   );
