@@ -6,7 +6,7 @@ Built with **Next.js**, **Tailwind CSS**, and backed by **Clerk** for robust ide
 
 ---
 
-## 🏗️ Architecture Concept
+## Architecture Concept
 
 Instead of building authentication into every single product (e.g., `app1.com`, `app2.com`, `app3.com`), you redirect all unauthenticated users to this central hub (`auth.yourdomain.com`).
 
@@ -21,7 +21,7 @@ This creates a seamless "Login once, access everywhere" experience.
 
 ---
 
-## 🚀 Step 1: Setting up the Auth Hub
+## Step 1: Setting up the Auth Hub
 
 ### Prerequisites
 
@@ -56,7 +56,7 @@ This creates a seamless "Login once, access everywhere" experience.
 
 ---
 
-## 🔌 Step 2: Integrating a Client Product (Next.js)
+## Step 2: Integrating a Client Product (Next.js)
 
 Any Next.js product in your ecosystem can rely on this Auth Hub. The only requirement is that the Client Product uses the **exact same Clerk Instance** (same Publishable and Secret keys) as the Auth Hub.
 
@@ -108,7 +108,7 @@ If you have a public landing page on `app1.com`, your "Login" and "Sign Up" butt
 
 ---
 
-## 🔑 Step 3: Session Validation (Next.js)
+## Step 3: Session Validation (Next.js)
 
 **You do not need to manually check if the session is valid.**
 
@@ -122,7 +122,7 @@ _(Note: For testing locally or operating across entirely different root domains,
 
 ---
 
-## 🟨 Step 4: Integrating an Express.js Client
+## Step 4: Integrating an Express.js Client
 
 Express.js clients **cannot use `ClerkProvider`** directly. Instead, they validate Clerk-issued JWTs on every protected request using the Clerk backend SDK.
 
@@ -243,7 +243,7 @@ After the global session ends, any subsequent API call will return `401`. Catch 
 
 ---
 
-## 🐍 Step 5: Integrating a Python Client (FastAPI / Flask)
+## Step 5: Integrating a Python Client (FastAPI / Flask)
 
 Python clients validate Clerk JWTs by fetching Clerk's public **JWKS** (JSON Web Key Set) and verifying the token's RS256 signature locally — no outbound call is needed on every request.
 
@@ -458,7 +458,7 @@ python app.py
 
 ---
 
-## 🚪 Step 6: Single Sign-Out (SSO Logout)
+## Step 6: Single Sign-Out (SSO Logout)
 
 To ensure users are logged out of _all_ enterprise applications at once, route your Client Product logouts through the Auth Hub — this is the same for **all stacks**.
 
@@ -480,7 +480,7 @@ To ensure users are logged out of _all_ enterprise applications at once, route y
 
 ---
 
-## 🗄️ Database Webhook & Syncing (Optional)
+## Database Webhook & Syncing (Optional)
 
 If your enterprise applications need to know exactly _which_ users have connected to _which_ products within your PostgreSQL database, the Auth Hub provides a callback endpoint. This works the same across all stacks.
 
@@ -506,7 +506,7 @@ httpx.post(
 
 ---
 
-## 📊 Stack Comparison
+## Stack Comparison
 
 | Feature          | Next.js                        | Express.js                           | Python (FastAPI/Flask)               |
 | ---------------- | ------------------------------ | ------------------------------------ | ------------------------------------ |
@@ -519,7 +519,7 @@ httpx.post(
 
 ---
 
-## 🎨 UI Guidelines
+## UI Guidelines
 
 The Auth Hub is designed to emulate Enterprise Meta-login portals to maximize trust and conversion rates:
 
