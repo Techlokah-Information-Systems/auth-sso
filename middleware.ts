@@ -6,9 +6,28 @@ export default clerkMiddleware(async (auth, req) => {
   const method = req.method;
   const url = req.url;
   const ip = req.headers.get("x-forwarded-for") || "unknown";
-  
+
   // Log the request
   console.log(`[Request] ${method} | ${url} | IP: ${ip}`);
+
+  const reqUrl = new URL(req.url);
+
+  // Instant Server-Side Bounce: If the user already has a session and tries to view auth pages, bounce them immediately.
+  if (
+    reqUrl.pathname.startsWith("/sign-in") ||
+    reqUrl.pathname.startsWith("/sign-up")
+  ) {
+    const { userId } = await auth();
+    if (userId) {
+      const redirectUrl =
+        reqUrl.searchParams.get("redirect_url") ||
+        reqUrl.searchParams.get("redirect_uri");
+      if (redirectUrl) {
+        return NextResponse.redirect(redirectUrl);
+      }
+      return NextResponse.redirect(new URL("/", req.url));
+    }
+  }
 
   // Continue to the requested route
   return NextResponse.next();
