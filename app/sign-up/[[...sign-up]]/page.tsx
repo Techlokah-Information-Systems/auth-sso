@@ -27,10 +27,14 @@ function SignUpForm() {
 
   React.useEffect(() => {
     // Auto-redirect if user already has an active session and a redirect URL
-    if (isSessionLoaded && session && redirectUrl) {
-      router.push(redirectUrl);
+    if (isSessionLoaded && session) {
+      if (redirectUrl) {
+        globalThis.location.href = clerk.buildUrlWithAuth(redirectUrl);
+      } else {
+        router.push("/");
+      }
     }
-  }, [isSessionLoaded, session, redirectUrl, router]);
+  }, [isSessionLoaded, session, redirectUrl, clerk, router]);
 
   const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();

@@ -10,24 +10,8 @@ export default clerkMiddleware(async (auth, req) => {
   // Log the request
   console.log(`[Request] ${method} | ${url} | IP: ${ip}`);
 
-  const reqUrl = new URL(req.url);
-
-  // Instant Server-Side Bounce: If the user already has a session and tries to view auth pages, bounce them immediately.
-  if (
-    reqUrl.pathname.startsWith("/sign-in") ||
-    reqUrl.pathname.startsWith("/sign-up")
-  ) {
-    const { userId } = await auth();
-    if (userId) {
-      const redirectUrl =
-        reqUrl.searchParams.get("redirect_url") ||
-        reqUrl.searchParams.get("redirect_uri");
-      if (redirectUrl) {
-        return NextResponse.redirect(redirectUrl);
-      }
-      return NextResponse.redirect(new URL("/", req.url));
-    }
-  }
+  // Because multi-domain single sign-on requires Clerk's frontend JS SDK to generate a ticket (clerk.buildUrlWithAuth),
+  // we must NOT intercept the session here in middleware. We let the client component handle the redirect so the target domain gets the session URL params.
 
   // Continue to the requested route
   return NextResponse.next();
