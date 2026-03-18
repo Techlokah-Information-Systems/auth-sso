@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useSignUp, useSession } from "@clerk/nextjs";
+import { useSignUp, useSession, useClerk } from "@clerk/nextjs";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Loader } from "@/app/components/loader";
@@ -10,6 +10,7 @@ import { Suspense } from "react";
 function SignUpForm() {
   const { isLoaded: isSignUpLoaded, signUp, setActive } = useSignUp();
   const { isLoaded: isSessionLoaded, session } = useSession();
+  const clerk = useClerk();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -41,7 +42,7 @@ function SignUpForm() {
       // Short-circuit if session exists
       if (isSessionLoaded && session) {
         if (redirectUrl) {
-          router.push(redirectUrl);
+          globalThis.location.href = clerk.buildUrlWithAuth(redirectUrl);
           return;
         } else {
           router.push("/");
@@ -79,7 +80,7 @@ function SignUpForm() {
       if (completeSignUp.status === "complete" && setActive) {
         await setActive({ session: completeSignUp.createdSessionId });
         if (redirectUrl) {
-          router.push(redirectUrl);
+          globalThis.location.href = clerk.buildUrlWithAuth(redirectUrl);
         } else {
           router.push("/");
         }

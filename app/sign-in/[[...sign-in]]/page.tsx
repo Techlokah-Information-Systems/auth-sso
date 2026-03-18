@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useSignIn, useSession } from "@clerk/nextjs";
+import { useSignIn, useSession, useClerk } from "@clerk/nextjs";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Loader } from "@/app/components/loader";
@@ -10,6 +10,7 @@ import { Suspense } from "react";
 function SignInForm() {
   const { isLoaded: isSignInLoaded, signIn, setActive } = useSignIn();
   const { isLoaded: isSessionLoaded, session } = useSession();
+  const clerk = useClerk();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -44,7 +45,7 @@ function SignInForm() {
       // If session exists but useEffect hasn't redirected yet, force the redirect instead of throwing an error when signing in again.
       if (isSessionLoaded && session) {
         if (redirectUrl) {
-          globalThis.location.href = redirectUrl; // Force full redirect to ensure cookies persist cross-domain
+          globalThis.location.href = clerk.buildUrlWithAuth(redirectUrl); // Force full redirect to ensure cookies persist cross-domain
           return;
         } else {
           router.push("/");
@@ -62,7 +63,7 @@ function SignInForm() {
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
         if (redirectUrl) {
-          globalThis.location.href = redirectUrl; // Force full redirect to break out of next/navigation SPA mode
+          globalThis.location.href = clerk.buildUrlWithAuth(redirectUrl); // Force full redirect to break out of next/navigation SPA mode
         } else {
           router.push("/");
         }
@@ -137,7 +138,7 @@ function SignInForm() {
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
         if (redirectUrl) {
-          globalThis.location.href = redirectUrl;
+          globalThis.location.href = clerk.buildUrlWithAuth(redirectUrl);
         } else {
           router.push("/");
         }
