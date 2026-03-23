@@ -25,15 +25,17 @@ export async function linkUserWithClient(
       return { success: false, error: "User not found in database" };
     }
 
-    await prisma.client.upsert({
-      where: { clerk_client_id: clerkClientId },
-      create: {
-        clerk_client_id: clerkClientId,
-        user_id: user.id,
-      },
-      update: {
-        user_id: user.id, // Update relation if client somehow changed user
-      },
+    const existingClient = await prisma.client.findUnique({
+      where: { client_id: clerkClientId },
+    });
+
+    if (!existingClient) {
+      return { success: false, error: "Client not registered" };
+    }
+
+    await prisma.client.update({
+      where: { id: existingClient.id },
+      data: { user_id: user.id },
     });
 
     return { success: true };

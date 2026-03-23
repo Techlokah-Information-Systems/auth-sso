@@ -27,7 +27,7 @@ export default function HomePage() {
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-[#4f4a65] p-4 md:p-8 font-sans antialiased">
-      <div className="w-full max-w-[500px] bg-[#2a2736] rounded-[24px] overflow-hidden shadow-2xl relative">
+      <div className="w-full max-w-2xl bg-[#2a2736] rounded-[24px] overflow-hidden shadow-2xl relative">
         {/* Header Cover Banner */}
         <div
           className="w-full h-32 relative flex items-center justify-end p-6"
@@ -117,13 +117,27 @@ export default function HomePage() {
             </div>
           </div>
 
-          <button
-            onClick={() => signOut(() => router.push("/sign-in"))}
-            className="w-full flex justify-center items-center gap-2 bg-[#7a5af8] hover:bg-[#6b4ce6] text-white py-[14px] rounded-[6px] font-bold transition-all shadow-[0_4px_14px_0_rgba(122,90,248,0.39)] hover:shadow-[0_6px_20px_rgba(122,90,248,0.23)]"
-          >
-            <LogOut size={18} />
-            Sign Out Securely
-          </button>
+          <div className="w-full flex flex-col gap-2">
+            <button
+              onClick={() => router.push("/authenticate")}
+              className="w-full flex justify-center items-center gap-2 bg-blue-600 text-white py-2 rounded-md font-bold hover:bg-blue-500"
+            >
+              <span>Authenticate a Client</span>
+            </button>
+            <button
+              onClick={() => router.push("/admin/login")}
+              className="w-full flex justify-center items-center gap-2 bg-emerald-600 text-white py-2 rounded-md font-bold hover:bg-emerald-500"
+            >
+              <span>Admin Client Dashboard</span>
+            </button>
+            <button
+              onClick={() => signOut(() => router.push("/sign-in"))}
+              className="w-full flex justify-center items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-md font-bold transition-all shadow-lg"
+            >
+              <LogOut size={18} />
+              Sign Out Securely
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -8,11 +8,11 @@ datasource db {
 }
 
 model User {
-  id String @id @default(cuid())
-  clerk_id String @unique
-  email String @unique
+  id         String   @id @default(cuid())
+  clerk_id   String   @unique
+  email      String   @unique
   first_name String?
-  last_name String?
+  last_name  String?
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
@@ -22,14 +22,24 @@ model User {
 }
 
 model Client {
-  id String @id @default(cuid())
-  clerk_client_id String @unique
+  id           String  @id @default(cuid())
+  client_id    String? @unique
+  redirect_uri String?
 
-  user_id String
-  user User @relation(fields: [user_id], references: [id])
-  
+  user_id String?
+  user    User?   @relation(fields: [user_id], references: [id])
+
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  @@index([clerk_client_id])
+  @@index([client_id])
+  @@index([redirect_uri])
+}
+
+model Admin {
+  id            String   @id @default(cuid())
+  username      String   @unique
+  password_hash String
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
 }

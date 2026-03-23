@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
     const { client_id, redirect_uri } = await request.json();
     if (!client_id || !redirect_uri) {
       return NextResponse.json(
-        { error: "Missing client_id or redirect_uri" },
+        { error: "client_id and redirect_uri required" },
         { status: 400 },
       );
     }
@@ -17,19 +17,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { clerk_id: userId },
-    });
+    const user = await prisma.user.findUnique({ where: { clerk_id: userId } });
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     const client = await prisma.client.findFirst({
-      where: { client_id, redirect_uri },
+      where: {
+        client_id,
+        redirect_uri,
+      },
     });
+
     if (!client) {
       return NextResponse.json(
-        { error: "Client not registered or redirect mismatch" },
+        { error: "Client not registered or redirect URI mismatch" },
         { status: 403 },
       );
     }
@@ -40,11 +42,11 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(
-      { message: "Client linked successfully" },
+      { message: "Linked successfully", redirect_uri },
       { status: 200 },
     );
-  } catch (error: unknown) {
-    console.error("Link Client Error:", error);
+  } catch (error) {
+    console.error("Authenticate link error", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
